@@ -1,4 +1,4 @@
-use std::{error::Error, ffi::CStr, future::pending};
+use std::{error::Error, ffi::CStr, future::pending, rc::Rc};
 use zbus::{dbus_interface, ConnectionBuilder};
 
 // functions from libsuseconnect.go
@@ -7,16 +7,45 @@ extern "C" {
     fn free_string(string: *const libc::c_char);
 }
 
-fn connect_version(full: bool) -> String {
-    unsafe {
-        let c_version = version(full);
-        let cstr = CStr::from_ptr(c_version);
-        // TODO: handle the error
-        let version = cstr.to_str().unwrap().into();
-        // golang allocates the strign so we need to free it
-        free_string(c_version);
-        version
+/// Safely handling strings from libsuseconnect
+struct GoString {
+    raw_str: *const libc::c_char,
+    string: Rc<str>,
+}
+
+impl AsRef<str> for GoString {
+    fn as_ref(&self) -> &str {
+        &self.string
     }
+}
+
+impl From<*const libc::c_char> for GoString {
+    fn from(value: *const libc::c_char) -> Self {
+        unsafe {
+            // TODO: create TryFrom to make this safer
+            let string = CStr::from_ptr(value).to_str().unwrap();
+            Self {
+                string: string.into(),
+                raw_str: value,
+            }
+        }
+    }
+}
+
+impl From<GoString> for String {
+    fn from(value: GoString) -> Self {
+        value.string.as_ref().into()
+    }
+}
+
+impl Drop for GoString {
+    fn drop(&mut self) {
+        unsafe { free_string(self.raw_str) };
+    }
+}
+
+fn connect_version(full: bool) -> GoString {
+    unsafe { version(full).into() }
 }
 
 struct Greeter {
@@ -32,7 +61,7 @@ impl Greeter {
     }
 
     fn version(&mut self, full: bool) -> String {
-        connect_version(full)
+        connect_version(full).into()
     }
 }
 
