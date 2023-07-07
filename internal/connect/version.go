@@ -14,3 +14,7 @@ var (
 func GetShortenedVersion() string {
 	return strings.Split(version, "~")[0]
 }
+
+func GetFullVersion() string {
+	return version
+}
