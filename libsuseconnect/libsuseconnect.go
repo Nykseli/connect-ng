@@ -481,4 +481,13 @@ func search_package(clientParams, product, query *C.char) *C.char {
 	return C.CString(string(jsn))
 }
 
+//export version
+func version(full bool) *C.char {
+	if full {
+		return C.CString(connect.GetFullVersion())
+	} else {
+		return C.CString(connect.GetShortenedVersion())
+	}
+}
+
 func main() {}
