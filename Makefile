@@ -39,6 +39,12 @@ build-arm: out internal/connect/version.txt
 build-s390: out internal/connect/version.txt
 	GOOS=linux GOARCH=s390x go build -v -o out/ github.com/SUSE/connect-ng/suseconnect
 
+build-connectd-go:
+	go build -v -o out/ github.com/SUSE/connect-ng/connectd-go
+
+build-connectd-rs:
+	cd connectd-rs; cargo build
+
 clean:
 	go clean
 	rm internal/connect/version.txt
